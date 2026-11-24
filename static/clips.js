@@ -138,3 +138,17 @@ document.addEventListener('close',resumeVisible,true);
 window.addEventListener('pageshow',e=>{if(e.persisted)resumeVisible()});
 window.addEventListener('pagehide',stopFeed);
 document.addEventListener('hubsoc:before-render',stopFeed);
+let draftUrl;
+document.addEventListener('change',e=>{
+ const input=e.target;if(!input.matches('#upload input[type=file]'))return;
+ const d=input.closest('dialog'),v=d.querySelector('[data-draft]'),status=d.querySelector('[data-upload-status]');
+ if(draftUrl)URL.revokeObjectURL(draftUrl);draftUrl=null;v.removeAttribute('src');v.hidden=true;d.querySelector('[data-placeholder]').hidden=false;
+ const file=input.files[0];let error='';if(file?.size>64*1024*1024)error='Файл больше 64 МБ.';else if(file&&!/\.(mp4|webm)$/i.test(file.name)&&!['video/mp4','video/webm'].includes(file.type))error='Выбери видео MP4 или WebM.';
+ input.setCustomValidity(error);status.textContent=error;if(!file||error)return;
+ draftUrl=URL.createObjectURL(file);v.src=draftUrl;v.hidden=false;d.querySelector('[data-placeholder]').hidden=true;
+ v.onerror=()=>{status.textContent='Этот плеер не читает файл. Для совместимости используй MP4 с видео H.264.'};
+});
+document.addEventListener('submit',e=>{if(e.target.closest('#upload'))e.target.querySelector('[data-upload-status]').textContent='Публикуем видео… Не закрывай окно.'});
+document.addEventListener('close',e=>{if(e.target.id==='upload')e.target.querySelector('video')?.pause()},true);
+document.addEventListener('click',e=>{if(e.target.closest('[data-hide-notice]'))e.target.closest('.publish-toast').remove()});
+document.addEventListener('hubsoc:before-render',()=>{if(draftUrl){URL.revokeObjectURL(draftUrl);draftUrl=null}});

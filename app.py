@@ -17,7 +17,7 @@ def site_styles():
 root=Path(app.instance_path); root.mkdir(exist_ok=True)
 key=root/'secret'
 if not key.exists(): key.write_bytes(secrets.token_bytes(32))
-app.secret_key=key.read_bytes(); app.config.update(MAX_CONTENT_LENGTH=26*1024*1024,SESSION_COOKIE_SAMESITE='Lax')
+app.secret_key=key.read_bytes(); app.config.update(MAX_CONTENT_LENGTH=65*1024*1024,SESSION_COOKIE_SAMESITE='Lax')
 # Embedded HTTPS previews need a cross-site cookie; keep local HTTP unchanged.
 if os.environ.get('HUBSOC_PREVIEW') == '1':
  app.config.update(SESSION_COOKIE_SAMESITE='None', SESSION_COOKIE_SECURE=True,
@@ -63,7 +63,7 @@ def comments(pid):
  return {'items':[dict(r) for r in rows]}
 @app.errorhandler(413)
 def too_large(error):
- return 'Видео слишком большое. Максимум — 25 МБ.',413
+ return 'Видео слишком большое. Максимум — 64 МБ.',413
 topics=['Общение','Дизайн','Музыка','Технологии']
 @app.route('/',methods=['GET','POST'])
 def home():
@@ -101,7 +101,7 @@ def home():
     if not video or len(body)>240: abort(400)
     sig=video.stream.read(12); size=video.stream.seek(0,2); video.stream.seek(0)
     ext='mp4' if sig[4:8]==b'ftyp' else 'webm' if sig[:4]==bytes.fromhex('1a45dfa3') else None
-    if size>25*1024*1024: abort(413)
+    if size>64*1024*1024: abort(413)
     if not ext: return 'Выберите видео в формате MP4 или WebM.',400
     filename=secrets.token_hex(20)+'.'+ext
     pid=c.execute('insert into posts(author,body,topic) values(?,?,?)',(user,body,'Клипы')).lastrowid
@@ -128,6 +128,7 @@ def home():
    if not error:
     destination=request.full_path if a in ('like','profile','clip','login','register') else '/'
     if a in ('save','comment','follow'): destination=request.full_path+f'#clip-{pid}'
+    if a=='clip': destination=f'/?published={pid}#clip-{pid}'
     if a=='post': destination='/?view=feed'
     if a=='like': destination+=f'#clip-{row[0]}'
     if not preview: return redirect(destination)

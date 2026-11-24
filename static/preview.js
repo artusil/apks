@@ -24,7 +24,8 @@
     try {
       await ready;
       const response = await fetch(location.href,{method:'POST',body:data,headers:headers()});
-      if (!response.ok && !response.headers.get('Content-Type')?.includes('application/json') && response.status !== 403) { alert(response.status===413?'Файл слишком большой (максимум 25 МБ).':'Не удалось сохранить. Проверь формат файла и поля формы.'); return; }
+      if (!response.ok && e.target.closest('#upload')) { const status=e.target.querySelector('[data-upload-status]'); status.textContent=response.status===413?'Файл слишком большой. Максимум 64 МБ.':response.status===403?'Сессия истекла. Обнови страницу и войди снова.':'Не удалось опубликовать. Проверь, что файл — видео MP4 или WebM.'; return; }
+      if (!response.ok && !response.headers.get('Content-Type')?.includes('application/json') && response.status !== 403) { alert(response.status===413?'Файл слишком большой (максимум 64 МБ).':'Не удалось сохранить. Проверь формат файла и поля формы.'); return; }
       if (!response.headers.get('Content-Type')?.includes('application/json')) return await render(response);
       const result = await response.json();
       ticket = result.ticket;
