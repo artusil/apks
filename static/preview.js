@@ -11,8 +11,10 @@
       ticket = meta.content;
       try { sessionStorage.setItem('hubsoc-tab', ticket); } catch {}
     }
+    document.dispatchEvent(new Event('hubsoc:before-render'));
     document.body.replaceWith(doc.body);
-    if (document.querySelector('[role="alert"]')?.textContent.trim()) document.querySelector('dialog').showModal();
+    document.dispatchEvent(new Event('hubsoc:render'));
+    if (document.querySelector('[role="alert"]')?.textContent.trim()) document.querySelector('#auth').showModal();
   }
   const ready = ticket === initial ? Promise.resolve() : fetch(location.href,{headers:headers()}).then(render);
   document.addEventListener('submit', async e => {
@@ -22,6 +24,7 @@
     try {
       await ready;
       const response = await fetch(location.href,{method:'POST',body:data,headers:headers()});
+      if (!response.ok && !response.headers.get('Content-Type')?.includes('application/json') && response.status !== 403) { alert(response.status===413?'Файл слишком большой (максимум 25 МБ).':'Не удалось сохранить. Проверь формат файла и поля формы.'); return; }
       if (!response.headers.get('Content-Type')?.includes('application/json')) return await render(response);
       const result = await response.json();
       ticket = result.ticket;
